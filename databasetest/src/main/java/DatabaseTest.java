@@ -3,7 +3,6 @@
  */
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import com.google.javascript.rhino.InputId;
 
 public class DatabaseTest {
 
@@ -16,7 +15,6 @@ public class DatabaseTest {
 		Node firstNode;
 		Node secondNode;
 		Relationship relationship;
-		InputId test;
 
 
 
