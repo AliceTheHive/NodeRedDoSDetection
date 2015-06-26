@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="neo4j-2.3.0-M02-sources">
+    <CLASSES />
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/libraries/neo4j-2.3.0-M02-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
