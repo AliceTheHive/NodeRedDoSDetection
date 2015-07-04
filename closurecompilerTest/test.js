@@ -1,10 +1,5 @@
-var a = 0;
+var a, b = 1;
 
-alert(13);
-
-externFunction();
-
-function interFunction() {
-    var b = 1;
+function test () {
+    b=2;
 }
-interFunction();

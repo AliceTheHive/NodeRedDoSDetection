@@ -1,15 +1,14 @@
 package com.google.javascript.jscomp;
 
+import com.google.common.collect.Lists;
 import com.google.javascript.jscomp.graph.DiGraph;
 import com.google.javascript.jscomp.parsing.parser.util.ErrorReporter;
 import com.google.javascript.jscomp.parsing.parser.util.SourcePosition;
 import com.google.javascript.rhino.Node;
+import edu.emory.mathcs.backport.java.util.Arrays;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
+import java.util.*;
 import java.util.stream.Collectors;
 public class AstGetTest {
 
@@ -22,32 +21,38 @@ public class AstGetTest {
 	}
 
 	public static void main(String[] args) throws IOException {
-		List<SourceFile> sources = getSourceFiles();
-		List<SourceFile> externs = getExternFiles();
+		astTest();
+	}
+
+	private static void astTest() {
+		List<SourceFile> sources = getSourceFiles(Arrays.asList(new String[] {"test.js"}));
 		CompilerOptions options = getCompilerOptions();
 
 		com.google.javascript.jscomp.Compiler compiler = new Compiler();
-		compiler.compile(externs, sources, options);
-
+		compiler.compile(new ArrayList<SourceFile>(), sources, options);
+		normailizeAst(compiler);
 		printAst(compiler.getRoot());
+		int nodeCount = 0;
+		NodeTraversal nodeTraversal = new NodeTraversal(compiler, new NodeTraversal.Callback() {
+			@Override
+			public boolean shouldTraverse(NodeTraversal nodeTraversal, Node node, Node node1) {
+				return true;
+			}
 
-		CallGraph callGraph = getCallgraph(compiler);
-		System.out.println(callGraph.getAllFunctions().stream().map(f -> f.getName()).collect(Collectors.joining(" ")));
-		System.out.println(callGraph.getAllCallsites().stream().map(cs -> Boolean.toString(cs.hasExternTarget())).collect(Collectors.joining(" ")));
-
-		ControlFlowGraph cfg = compiler.computeCFG();
-		printCfg(cfg.getEntry());
+			@Override
+			public void visit(NodeTraversal nodeTraversal, Node node, Node node1) {
+				System.out.println(node);
+			}
+		});
+		nodeTraversal.traverse(compiler.getJsRoot());
 	}
 
-	private static List<SourceFile> getSourceFiles() {
-		SourceFile sourceFile = SourceFile.fromFile("switch_node_code.js");
-		try {
-			System.out.println(sourceFile.getCode());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+	private static List<SourceFile> getSourceFiles(List<String> sourceFiles) {
 		ArrayList<SourceFile> sources = new ArrayList<>();
-		sources.add(sourceFile);
+		for (String filepath : sourceFiles) {
+			SourceFile sourceFile = SourceFile.fromFile(filepath);
+			sources.add(sourceFile);
+		}
 		return sources;
 	}
 
@@ -70,15 +75,31 @@ public class AstGetTest {
 		return options;
 	}
 
-	private static void printAst(Node root) {
-		Queue<Node> nodesToVisit = new LinkedList<Node>();
-		nodesToVisit.add(root);
 
+	private static void printAst(Node root) {
+		Stack<Node> nodesToVisit = new Stack<>();
+		nodesToVisit.push(root);
+		int ident = 0;
 		while (!nodesToVisit.isEmpty()) {
-			Node node = nodesToVisit.poll();
+			Node node = nodesToVisit.pop();
+			if (node == null) {
+				ident--;
+				continue;
+			}
+
+			for(int i = 0; i < ident; i++) {
+				System.out.print("    ");
+			}
 			System.out.println(node.toString());
-			for (Node child : node.children()) {
-				nodesToVisit.offer(child);
+
+			List<Node> children = Lists.newArrayList(node.children());
+			if (children.size() > 0) {
+				ident++;
+				nodesToVisit.push(null);
+				children = Lists.reverse(children);
+				for (Node child : children) {
+					nodesToVisit.push(child);
+				}
 			}
 		}
 	}
@@ -100,6 +121,11 @@ public class AstGetTest {
 				diNodesToVisit.offer(((DiGraph.DiGraphEdge) edge).getDestination());
 			}
 		}
+	}
+
+	private static void normailizeAst(Compiler compiler) {
+		Normalize normalize = new Normalize(compiler, false);
+		compiler.process(normalize);
 	}
 
 }
