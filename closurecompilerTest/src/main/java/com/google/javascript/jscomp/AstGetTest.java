@@ -25,7 +25,7 @@ public class AstGetTest {
 
 	public static void main(String[] args) throws IOException {
 
-		SourceFile sourceFile = SourceFile.fromFile("test.js");
+		SourceFile sourceFile = SourceFile.fromFile("tcpin_node_code.js");
 		try {
 			System.out.println(sourceFile.getCode());
 		} catch (IOException e) {
@@ -41,7 +41,7 @@ public class AstGetTest {
 			e.printStackTrace();
 		}
 		ArrayList<SourceFile> externs = new ArrayList<>();
-		externs.add(externFile);
+//		externs.add(externFile);
 
 		CompilerOptions options = new CompilerOptions();
 		options.setLanguage(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
