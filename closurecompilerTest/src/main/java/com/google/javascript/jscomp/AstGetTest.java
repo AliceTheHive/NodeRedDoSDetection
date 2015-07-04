@@ -1,17 +1,15 @@
 package com.google.javascript.jscomp;
 
-import com.google.javascript.jscomp.*;
-import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.graph.DiGraph;
-import com.google.javascript.jscomp.parsing.Config;
-import com.google.javascript.jscomp.parsing.ParserRunner;
 import com.google.javascript.jscomp.parsing.parser.util.ErrorReporter;
 import com.google.javascript.jscomp.parsing.parser.util.SourcePosition;
 import com.google.javascript.rhino.Node;
 
 import java.io.IOException;
-import java.util.*;
-
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
 import java.util.stream.Collectors;
 public class AstGetTest {
 
@@ -24,7 +22,6 @@ public class AstGetTest {
 	}
 
 	public static void main(String[] args) throws IOException {
-
 		List<SourceFile> sources = getSourceFiles();
 		List<SourceFile> externs = getExternFiles();
 		CompilerOptions options = getCompilerOptions();
@@ -40,8 +37,6 @@ public class AstGetTest {
 
 		ControlFlowGraph cfg = compiler.computeCFG();
 		printCfg(cfg.getEntry());
-
-
 	}
 
 	private static List<SourceFile> getSourceFiles() {
