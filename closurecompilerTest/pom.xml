@@ -16,7 +16,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.2.1</version>
                 <configuration>
-                    <mainClass>com.google.javascript.jscomp.parsing.AstGetTest</mainClass>
+                    <mainClass>com.google.javascript.jscomp.AstGetTest</mainClass>
                 </configuration>
             </plugin>
         </plugins>
@@ -35,6 +35,10 @@
             <version>v20140730</version>
         </dependency>
     </dependencies>
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+    </properties>
 
 
 </project>

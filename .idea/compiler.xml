@@ -27,9 +27,8 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="closurecompilerTest" target="1.5" />
+      <module name="closurecompilerTest" target="1.8" />
       <module name="databasetest" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
-
