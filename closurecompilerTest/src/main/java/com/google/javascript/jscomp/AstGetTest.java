@@ -25,7 +25,27 @@ public class AstGetTest {
 
 	public static void main(String[] args) throws IOException {
 
-		SourceFile sourceFile = SourceFile.fromFile("tcpin_node_code.js");
+		List<SourceFile> sources = getSourceFiles();
+		List<SourceFile> externs = getExternFiles();
+		CompilerOptions options = getCompilerOptions();
+
+		com.google.javascript.jscomp.Compiler compiler = new Compiler();
+		compiler.compile(externs, sources, options);
+
+		printAst(compiler.getRoot());
+
+		CallGraph callGraph = getCallgraph(compiler);
+		System.out.println(callGraph.getAllFunctions().stream().map(f -> f.getName()).collect(Collectors.joining(" ")));
+		System.out.println(callGraph.getAllCallsites().stream().map(cs -> Boolean.toString(cs.hasExternTarget())).collect(Collectors.joining(" ")));
+
+		ControlFlowGraph cfg = compiler.computeCFG();
+		printCfg(cfg.getEntry());
+
+
+	}
+
+	private static List<SourceFile> getSourceFiles() {
+		SourceFile sourceFile = SourceFile.fromFile("switch_node_code.js");
 		try {
 			System.out.println(sourceFile.getCode());
 		} catch (IOException e) {
@@ -33,7 +53,10 @@ public class AstGetTest {
 		}
 		ArrayList<SourceFile> sources = new ArrayList<>();
 		sources.add(sourceFile);
+		return sources;
+	}
 
+	private static List<SourceFile> getExternFiles() {
 		SourceFile externFile = SourceFile.fromFile("externs.js");
 		try {
 			System.out.println(externFile.getCode());
@@ -41,19 +64,20 @@ public class AstGetTest {
 			e.printStackTrace();
 		}
 		ArrayList<SourceFile> externs = new ArrayList<>();
-//		externs.add(externFile);
+		externs.add(externFile);
+		return externs;
+	}
 
+	private static CompilerOptions getCompilerOptions() {
 		CompilerOptions options = new CompilerOptions();
 		options.setLanguage(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
 		options.setSkipAllPasses(true);
-		com.google.javascript.jscomp.Compiler compiler = new Compiler();
-		compiler.compile(externs, sources, options);
+		return options;
+	}
 
-
-//		Config config = new Config(new HashSet<String>(), new HashSet<String>(), false, Config.LanguageMode.ECMASCRIPT5_STRICT, false);
-//		ParserRunner.ParseResult result = ParserRunner.parse(sourceFile, sourceFile.getCode(), config, null);
+	private static void printAst(Node root) {
 		Queue<Node> nodesToVisit = new LinkedList<Node>();
-		nodesToVisit.add(compiler.getRoot());
+		nodesToVisit.add(root);
 
 		while (!nodesToVisit.isEmpty()) {
 			Node node = nodesToVisit.poll();
@@ -62,25 +86,23 @@ public class AstGetTest {
 				nodesToVisit.offer(child);
 			}
 		}
+	}
 
+	private static CallGraph getCallgraph(Compiler compiler) {
 		CallGraph callGraph = new CallGraph(compiler);
 		callGraph.process(compiler.getRoot().getFirstChild(), compiler.getRoot().getLastChild());
-		System.out.println(callGraph.getAllFunctions().stream().map(f -> f.getName()).collect(Collectors.joining(" ")));
-		System.out.println(callGraph.getAllCallsites().stream().map(cs -> Boolean.toString(cs.hasExternTarget())).collect(Collectors.joining(" ")));
+		return callGraph;
+	}
 
-		System.out.println(compiler.toSource());
-		ControlFlowGraph cfg = compiler.computeCFG();
-		DiGraph.DiGraphNode test = cfg.getEntry();
-
+	private static void printCfg(DiGraph.DiGraphNode entry) {
 		Queue<DiGraph.DiGraphNode> diNodesToVisit = new LinkedList<>();
-		diNodesToVisit.add(cfg.getEntry());
-		System.out.println(cfg.getEdges().size());
+		diNodesToVisit.add(entry);
 
 		while (!diNodesToVisit.isEmpty()) {
 			DiGraph.DiGraphNode node = diNodesToVisit.poll();
 			System.out.println(node.toString());
 			for (Object edge : node.getOutEdges()) {
-				diNodesToVisit.offer(((DiGraph.DiGraphEdge)edge).getDestination());
+				diNodesToVisit.offer(((DiGraph.DiGraphEdge) edge).getDestination());
 			}
 		}
 	}
