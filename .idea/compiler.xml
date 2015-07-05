@@ -24,11 +24,13 @@
         <processorPath useClasspath="true" />
         <module name="closurecompilerTest" />
         <module name="databasetest" />
+        <module name="SaveNodeToDatabase" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="closurecompilerTest" target="1.8" />
       <module name="databasetest" target="1.8" />
+      <module name="SaveNodeToDatabase" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

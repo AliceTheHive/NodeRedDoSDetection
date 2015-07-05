@@ -9,6 +9,7 @@
       <list>
         <option value="$PROJECT_DIR$/databasetest/pom.xml" />
         <option value="$PROJECT_DIR$/closurecompilerTest/pom.xml" />
+        <option value="$PROJECT_DIR$/SaveNodeToDatabase/pom.xml" />
       </list>
     </option>
   </component>
@@ -16,4 +17,3 @@
     <output url="file://$PROJECT_DIR$/out" />
   </component>
 </project>
-
