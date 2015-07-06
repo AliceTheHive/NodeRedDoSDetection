@@ -4,6 +4,7 @@ import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.graph.DiGraph;
 import com.google.javascript.rhino.*;
 import edu.emory.mathcs.backport.java.util.Arrays;
+import jdk.nashorn.internal.ir.visitor.NodeVisitor;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
@@ -34,27 +35,13 @@ public class SaveNodeToDatabase {
 
 		Compiler compiler = setupCompiler();
 
-		printAst(compiler.getRoot());
-
-		try (Transaction tx = graphDb.beginTx()) {
-			firstNode = graphDb.createNode();
-			firstNode.setProperty("message", "Hello, ");
-			secondNode = graphDb.createNode();
-			secondNode.setProperty("message", "World!");
-
-			relationship = firstNode.createRelationshipTo(secondNode, RelTypes.KNOWS);
-			relationship.setProperty("message", "brave Neo4j ");
-			System.out.print(firstNode.getProperty("message"));
-			System.out.print(relationship.getProperty("message"));
-			System.out.println(secondNode.getProperty("message"));
-			tx.success();
-		}
+		writeAstToDatabase(compiler, graphDb);
 
 		graphDb.shutdown();
 	}
 
 	private static Compiler setupCompiler() {
-		List<SourceFile> sources = getSourceFiles(Arrays.asList(new String[] {"switch_node_code.js"}));
+		List<SourceFile> sources = getSourceFiles(Arrays.asList(new String[]{"switch_node_code.js"}));
 		CompilerOptions options = getCompilerOptions();
 
 		com.google.javascript.jscomp.Compiler compiler = new Compiler();
@@ -106,7 +93,7 @@ public class SaveNodeToDatabase {
 				continue;
 			}
 
-			for(int i = 0; i < ident; i++) {
+			for (int i = 0; i < ident; i++) {
 				System.out.print("    ");
 			}
 			System.out.println(node.toString());
@@ -120,6 +107,16 @@ public class SaveNodeToDatabase {
 					nodesToVisit.push(child);
 				}
 			}
+		}
+	}
+
+	private static void writeAstToDatabase(Compiler compiler, GraphDatabaseService db) {
+		try (Transaction tx = db.beginTx()) {
+			SaveNodeToDatabaseCallback callback = new SaveNodeToDatabaseCallback(db);
+
+			NodeTraversal.traverse(compiler, compiler.getRoot(), callback);
+			System.out.println(callback.getNodeCounter());
+			tx.success();
 		}
 	}
 }
