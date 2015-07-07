@@ -1,6 +1,7 @@
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.rhino.Node;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Relationship;
 
 import java.util.HashMap;
 
@@ -8,7 +9,6 @@ import java.util.HashMap;
  * Created by Per on 05.07.2015.
  */
 public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
-	private int ID_PROP = 10000;
 
 	private GraphDatabaseService db;
 
@@ -25,17 +25,22 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		nodeCounter++;
 		org.neo4j.graphdb.Node dbNode = db.createNode();
 		dbNode.addLabel(new AstNodeLabel());
+		if (parent == null) {
+			dbNode.addLabel(new AstRootLabel());
+		}
 
-		node.putProp(ID_PROP, new IdPropertyObject(dbNode.getId()));
+		node.putProp(IdPropertyObject.ID_PROP, new IdPropertyObject(dbNode.getId()));
 		parentMap.put(dbNode.getId(), dbNode);
 
 		if (parent != null) {
-			Object parentIdProp = parent.getProp(ID_PROP);
+			Object parentIdProp = parent.getProp(IdPropertyObject.ID_PROP);
 			long parentId = ((IdPropertyObject) parentIdProp).getId();
 			org.neo4j.graphdb.Node dbParent =  parentMap.get(parentId);
-			dbParent.createRelationshipTo(dbNode, RelationshipTypes.AST_PARENT_OF);
+			Relationship parentRelationship = dbParent.createRelationshipTo(dbNode, RelationshipTypes.AST_PARENT_OF);
+
+			int childRank = parent.getIndexOfChild(node);
+			parentRelationship.setProperty(DbProperties.AST_CHILD_RANK, childRank);
 		}
-		dbNode.getRelationships()
 		return true;
 	}
 
@@ -53,15 +58,5 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		return nodeCounter;
 	}
 
-	private class IdPropertyObject {
-		private long id;
 
-		public IdPropertyObject(long id) {
-			this.id = id;
-		}
-
-		public long getId() {
-			return id;
-		}
-	}
 }

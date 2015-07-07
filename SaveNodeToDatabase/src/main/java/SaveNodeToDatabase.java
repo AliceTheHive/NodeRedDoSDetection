@@ -1,43 +1,50 @@
 import com.google.common.collect.Lists;
 import com.google.javascript.jscomp.*;
 import com.google.javascript.jscomp.Compiler;
-import com.google.javascript.jscomp.graph.DiGraph;
 import com.google.javascript.rhino.*;
 import edu.emory.mathcs.backport.java.util.Arrays;
-import jdk.nashorn.internal.ir.visitor.NodeVisitor;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.traversal.*;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * Created by Per on 05.07.2015.
  */
 
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-
-import java.io.IOException;
-import java.util.*;
-
 public class SaveNodeToDatabase {
 
-	private static enum RelTypes implements RelationshipType {
-		KNOWS
-	}
+
+	private static final String DATABASE_FOLDER_NAME = "database.graphdb";
 
 	public static void main(String[] args) {
-		Node firstNode;
-		Node secondNode;
-		Relationship relationship;
 
+		try {
+			Utils.deleteFolder(new File(DATABASE_FOLDER_NAME));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabase("database.graphdb");
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(DATABASE_FOLDER_NAME);
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				graphDb.shutdown();
+			}
+		});
 
 		Compiler compiler = setupCompiler();
 
 		writeAstToDatabase(compiler, graphDb);
+		validateAstInDatabase(compiler, graphDb);
 
 		graphDb.shutdown();
+
+
 	}
 
 	private static Compiler setupCompiler() {
@@ -115,10 +122,84 @@ public class SaveNodeToDatabase {
 			SaveNodeToDatabaseCallback callback = new SaveNodeToDatabaseCallback(db);
 
 			NodeTraversal.traverse(compiler, compiler.getRoot(), callback);
-			System.out.println(callback.getNodeCounter());
 			tx.success();
 		}
 	}
+
+	private static void validateAstInDatabase(Compiler compiler, GraphDatabaseService db) {
+		List<com.google.javascript.rhino.Node> preOrderCompilerAst = getPreOrderCompilerAst(compiler);
+		List<Node> preOrderDbAst = getPreOrderDbAst(db);
+		System.out.println(preOrderCompilerAst.size() == preOrderDbAst.size());
+		for (int i = 0; i < preOrderCompilerAst.size(); i++) {
+			com.google.javascript.rhino.Node compilerNode = preOrderCompilerAst.get(i);
+			Node dbNode = preOrderDbAst.get(i);
+
+			long compilerNodeId = ((IdPropertyObject) compilerNode.getProp(IdPropertyObject.ID_PROP)).getId();
+//			if (i < 20) {
+//				System.out.print(compilerNodeId);
+//				System.out.print(" ");
+//				System.out.println(dbNode.getId());
+//			}
+			if (dbNode.getId() != compilerNodeId) {
+				System.out.println("Error");
+			}
+
+		}
+	}
+
+	private static List<Node> getPreOrderDbAst(GraphDatabaseService db) {
+		List<Node> nodeList = new ArrayList<>();
+		try (Transaction tx = db.beginTx()) {
+			Stack<Node> nodesToVisit = new Stack<>();
+			Iterator<Node> rootNodes = db.findNodes(new AstRootLabel());
+			nodesToVisit.push(rootNodes.next());
+
+			while (!nodesToVisit.isEmpty()) {
+				Node node = nodesToVisit.pop();
+				nodeList.add(node);
+
+				List<Relationship> childrenRels = Lists.newArrayList(node.getRelationships(RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING));
+				childrenRels.sort(new Comparator<Relationship>() {
+					@Override
+					public int compare(Relationship o1, Relationship o2) {
+						return ((Integer)o1.getProperty(DbProperties.AST_CHILD_RANK)) - ((Integer) o2.getProperty(DbProperties.AST_CHILD_RANK));
+					}
+				});
+				childrenRels = Lists.reverse(childrenRels);
+				for (Relationship childRel : childrenRels) {
+					nodesToVisit.push(childRel.getEndNode());
+				}
+			}
+			tx.success();
+			return nodeList;
+		}
+
+//			TraversalDescription preOrderTraversalWithRank = db.traversalDescription();
+//			preOrderTraversalWithRank
+//					.relationships(RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING)
+//					.order(BranchOrderingPolicies.PREORDER_DEPTH_FIRST)
+//					.expand(new MyPathExpander());
+//			Iterator nodes = db.findNodes(new AstRootLabel());
+//			Iterable<Node> nodesIterable = new Iterable<Node>() {
+//				@Override
+//				public Iterator<Node> iterator() {
+//					return nodes;
+//				}
+//			};
+//			org.neo4j.graphdb.traversal.Traverser traverser = preOrderTraversalWithRank.traverse(nodesIterable);
+//
+//			nodeList = Lists.newArrayList(traverser.nodes());
+//			tx.success();
+//		}
+//		return nodeList;
+	}
+
+	private static List<com.google.javascript.rhino.Node> getPreOrderCompilerAst(Compiler compiler) {
+		PreorderListCallback preorderListCallback = new PreorderListCallback();
+		NodeTraversal.traverse(compiler, compiler.getRoot(), preorderListCallback);
+		return preorderListCallback.getNodes();
+	}
+
 }
 
 
