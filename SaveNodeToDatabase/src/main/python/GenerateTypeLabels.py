@@ -1,3 +1,5 @@
+classFolder = 'typeLabels'
+
 typeString = """ERROR = -1,
 
       RETURN = 4,
@@ -178,17 +180,16 @@ typeString = """ERROR = -1,
       // Token Types to use for internal bookkeeping,
       // an AST is invalid while these are present.
       PLACEHOLDER1 = 1001,
-      PLACEHOLDER2 = 1002;
+      PLACEHOLDER2 = 1002
 """
 
-f = file("newTypeString.txt", 'w')
 lines = typeString.split('\n')
 
 lines = map(lambda l: l.strip(), lines)
 
 lines = map(lambda l: l.replace(',', ''), lines)
 
-lines = filter(lambda l: l!='', lines)
+lines = filter(lambda l: l != '', lines)
 
 lines = filter(lambda l: not l.startswith('//'), lines)
 
@@ -198,28 +199,47 @@ lines = map(lambda l: l[0], lines)
 lines = map(lambda l: l.replace(' =', ''), lines)
 lines = map(lambda l: l.strip(), lines)
 
-for line in lines:
-      f.write(line + '\n')
-f.close()
-
-
-
 typeAndId = map(lambda l: l.split(' '), lines)
 for t in typeAndId:
-      if len(t) != 2:
-            print len(t)
+    if len(t) != 2:
+        print len(t)
 
 classNames = map(lambda t: t[0].lower().capitalize(), typeAndId)
 classNames = map(lambda cn: cn + 'Label', classNames)
-print classNames
 
 for (i, (t, ID)) in enumerate(typeAndId):
-      f = file('classfolder/' + classNames[i] + '.java', 'w')
-      f.write("""package db.types;
+    f = file(classFolder + '/' + classNames[i] + '.java', 'w')
+    f.write("""package db.types;
 import org.neo4j.graphdb.Label;
 """)
-      f.write("public class " + classNames[i] + " extends Label {\n")
-      f.write("}")
-      f.close()
+    f.write("public class " + classNames[i] + " implements Label {\n")
+    f.write('@Override\n')
+    f.write('public String name() {\n')
+    f.write('return "AST_TYPE_' + t + '";\n')
+    f.write('}\n')
+    f.write("}")
+    f.close()
 
+f = file('AstTypeLabelsGenerated.java', 'w')
 
+f.write('package db;\n')
+f.write('import db.typeLabels.*;\n')
+f.write('import org.neo4j.graphdb.Label;\n')
+f.write('class AstTypeLabelsGenerated {\n')
+f.write('public static Label typeToLabel(int type) {\n')
+f.write('switch (type) {\n')
+for (i, (t, ID)) in enumerate(typeAndId):
+    f.write('case ' + ID + ':\n')
+    f.write('return new ' + classNames[i] + '();\n')
+f.write('default: throw new IllegalStateException("Unknown Labeltype");\n')
+f.write('}\n')
+f.write('}\n')
+
+f.write('public static int labelToType(Label label) {\n')
+for (i, (t, ID)) in enumerate(typeAndId):
+      f.write('if (label instanceof ' + classNames[i] + ') {\n')
+      f.write('return ' + ID + ';\n')
+      f.write('}\n')
+f.write('throw new IllegalStateException("Unknown label class");\n')
+f.write('}\n')
+f.write('}\n')
