@@ -1,4 +1,8 @@
+package db;
+
 import com.google.common.collect.Lists;
+import db.Properties;
+import db.RelationshipTypes;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.BranchState;
 
@@ -17,7 +21,7 @@ public class MyPathExpander implements PathExpander {
 		relationshipList.sort(new Comparator<Relationship>() {
 			@Override
 			public int compare(Relationship o1, Relationship o2) {
-				return ((Integer) o1.getProperty(DbProperties.AST_CHILD_RANK)) - ((Integer)o2.getProperty(DbProperties.AST_CHILD_RANK));
+				return ((Integer) o1.getProperty(Properties.AST_CHILD_RANK)) - ((Integer)o2.getProperty(Properties.AST_CHILD_RANK));
 			}
 		});
 		return relationshipList;

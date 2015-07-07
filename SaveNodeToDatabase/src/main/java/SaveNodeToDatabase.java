@@ -1,12 +1,16 @@
 import com.google.common.collect.Lists;
 import com.google.javascript.jscomp.*;
 import com.google.javascript.jscomp.Compiler;
-import com.google.javascript.rhino.*;
+import compiler.IdPropertyObject;
+import compiler.PreorderListCallback;
+import compiler.SaveNodeToDatabaseCallback;
+import db.AstRootLabel;
+import db.Properties;
+import db.RelationshipTypes;
 import edu.emory.mathcs.backport.java.util.Arrays;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.traversal.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,6 +47,7 @@ public class SaveNodeToDatabase {
 		validateAstInDatabase(compiler, graphDb);
 
 		graphDb.shutdown();
+		System.out.println("Done");
 
 
 	}
@@ -162,7 +167,7 @@ public class SaveNodeToDatabase {
 				childrenRels.sort(new Comparator<Relationship>() {
 					@Override
 					public int compare(Relationship o1, Relationship o2) {
-						return ((Integer)o1.getProperty(DbProperties.AST_CHILD_RANK)) - ((Integer) o2.getProperty(DbProperties.AST_CHILD_RANK));
+						return ((Integer)o1.getProperty(Properties.AST_CHILD_RANK)) - ((Integer) o2.getProperty(Properties.AST_CHILD_RANK));
 					}
 				});
 				childrenRels = Lists.reverse(childrenRels);
@@ -176,10 +181,10 @@ public class SaveNodeToDatabase {
 
 //			TraversalDescription preOrderTraversalWithRank = db.traversalDescription();
 //			preOrderTraversalWithRank
-//					.relationships(RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING)
+//					.relationships(db.RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING)
 //					.order(BranchOrderingPolicies.PREORDER_DEPTH_FIRST)
-//					.expand(new MyPathExpander());
-//			Iterator nodes = db.findNodes(new AstRootLabel());
+//					.expand(new db.MyPathExpander());
+//			Iterator nodes = db.findNodes(new db.AstRootLabel());
 //			Iterable<Node> nodesIterable = new Iterable<Node>() {
 //				@Override
 //				public Iterator<Node> iterator() {

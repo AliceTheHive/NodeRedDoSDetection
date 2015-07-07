@@ -1,3 +1,5 @@
+package compiler;
+
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.rhino.Node;
 

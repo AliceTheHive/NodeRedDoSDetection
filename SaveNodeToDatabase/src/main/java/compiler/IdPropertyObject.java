@@ -1,3 +1,5 @@
+package compiler;
+
 public class IdPropertyObject {
 	public static int ID_PROP = 30;
 

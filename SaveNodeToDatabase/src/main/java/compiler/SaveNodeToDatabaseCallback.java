@@ -1,5 +1,11 @@
+package compiler;
+
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.rhino.Node;
+import db.AstNodeLabel;
+import db.AstRootLabel;
+import db.Properties;
+import db.RelationshipTypes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Relationship;
 
@@ -39,7 +45,7 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 			Relationship parentRelationship = dbParent.createRelationshipTo(dbNode, RelationshipTypes.AST_PARENT_OF);
 
 			int childRank = parent.getIndexOfChild(node);
-			parentRelationship.setProperty(DbProperties.AST_CHILD_RANK, childRank);
+			parentRelationship.setProperty(Properties.AST_CHILD_RANK, childRank);
 		}
 		return true;
 	}
@@ -47,7 +53,7 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 	@Override
 	public void visit(NodeTraversal nodeTraversal, Node node, Node parent) {
 //		if (parent != null) {
-//			IdPropertyObject idObject = (IdPropertyObject) parent.getProp(ID_PROP);
+//			compiler.IdPropertyObject idObject = (compiler.IdPropertyObject) parent.getProp(ID_PROP);
 //
 //			parentMap.remove(idObject.getId());
 //
