@@ -3,7 +3,6 @@ package compiler;
 public class IdPropertyObject {
 	public static int ID_PROP = 30;
 
-
 	private long id;
 
 	public IdPropertyObject(long id) {

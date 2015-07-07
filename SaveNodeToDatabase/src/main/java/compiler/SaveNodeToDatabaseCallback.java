@@ -20,7 +20,8 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 
 	private int nodeCounter = 0;
 
-	private HashMap<Long, org.neo4j.graphdb.Node> parentMap = new HashMap<>();
+	// I am using object instance equality here on purpose.
+	private HashMap<Node, org.neo4j.graphdb.Node> parentMap = new HashMap<>();
 
 	public SaveNodeToDatabaseCallback(GraphDatabaseService db) {
 		this.db = db;
@@ -34,14 +35,15 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		if (parent == null) {
 			dbNode.addLabel(new AstRootLabel());
 		}
+		dbNode.setProperty(Properties.AST_TYPE, node.getType());
 
 		node.putProp(IdPropertyObject.ID_PROP, new IdPropertyObject(dbNode.getId()));
-		parentMap.put(dbNode.getId(), dbNode);
+		parentMap.put(node, dbNode);
 
 		if (parent != null) {
-			Object parentIdProp = parent.getProp(IdPropertyObject.ID_PROP);
-			long parentId = ((IdPropertyObject) parentIdProp).getId();
-			org.neo4j.graphdb.Node dbParent =  parentMap.get(parentId);
+//			Object parentIdProp = parent.getProp(IdPropertyObject.ID_PROP);
+//			long parentId = ((IdPropertyObject) parentIdProp).getId();
+			org.neo4j.graphdb.Node dbParent =  parentMap.get(parent);
 			Relationship parentRelationship = dbParent.createRelationshipTo(dbNode, RelationshipTypes.AST_PARENT_OF);
 
 			int childRank = parent.getIndexOfChild(node);

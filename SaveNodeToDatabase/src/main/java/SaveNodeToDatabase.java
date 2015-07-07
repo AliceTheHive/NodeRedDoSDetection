@@ -135,20 +135,27 @@ public class SaveNodeToDatabase {
 		List<com.google.javascript.rhino.Node> preOrderCompilerAst = getPreOrderCompilerAst(compiler);
 		List<Node> preOrderDbAst = getPreOrderDbAst(db);
 		System.out.println(preOrderCompilerAst.size() == preOrderDbAst.size());
+		try(Transaction tx = db.beginTx()) {
+
 		for (int i = 0; i < preOrderCompilerAst.size(); i++) {
 			com.google.javascript.rhino.Node compilerNode = preOrderCompilerAst.get(i);
 			Node dbNode = preOrderDbAst.get(i);
 
 			long compilerNodeId = ((IdPropertyObject) compilerNode.getProp(IdPropertyObject.ID_PROP)).getId();
+
+			int compilerType = compilerNode.getType();
+			int dbType = (Integer) dbNode.getProperty(Properties.AST_TYPE);
 //			if (i < 20) {
 //				System.out.print(compilerNodeId);
 //				System.out.print(" ");
 //				System.out.println(dbNode.getId());
 //			}
-			if (dbNode.getId() != compilerNodeId) {
+
+			if (dbNode.getId() != compilerNodeId || compilerType != dbType) {
 				System.out.println("Error");
 			}
-
+			tx.success();
+		}
 		}
 	}
 
