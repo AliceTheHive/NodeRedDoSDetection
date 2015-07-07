@@ -2,10 +2,7 @@ package compiler;
 
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.rhino.Node;
-import db.AstNodeLabel;
-import db.AstRootLabel;
-import db.Properties;
-import db.RelationshipTypes;
+import db.*;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Relationship;
 
@@ -35,6 +32,7 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		if (parent == null) {
 			dbNode.addLabel(new AstRootLabel());
 		}
+		dbNode.addLabel(AstTypeLabels.typeToLabel(node.getType()));
 		dbNode.setProperty(Properties.AST_TYPE, node.getType());
 
 		node.putProp(IdPropertyObject.ID_PROP, new IdPropertyObject(dbNode.getId()));

@@ -5,6 +5,7 @@ import compiler.IdPropertyObject;
 import compiler.PreorderListCallback;
 import compiler.SaveNodeToDatabaseCallback;
 import db.AstRootLabel;
+import db.AstTypeLabels;
 import db.Properties;
 import db.RelationshipTypes;
 import edu.emory.mathcs.backport.java.util.Arrays;
@@ -144,13 +145,16 @@ public class SaveNodeToDatabase {
 			long compilerNodeId = ((IdPropertyObject) compilerNode.getProp(IdPropertyObject.ID_PROP)).getId();
 
 			int compilerType = compilerNode.getType();
+
 			int dbType = (Integer) dbNode.getProperty(Properties.AST_TYPE);
 //			if (i < 20) {
 //				System.out.print(compilerNodeId);
 //				System.out.print(" ");
 //				System.out.println(dbNode.getId());
 //			}
-
+			if (!dbNode.hasLabel(AstTypeLabels.typeToLabel(dbType))) {
+				System.out.println("Error label type not equal property type.");
+			}
 			if (dbNode.getId() != compilerNodeId || compilerType != dbType) {
 				System.out.println("Error");
 			}
