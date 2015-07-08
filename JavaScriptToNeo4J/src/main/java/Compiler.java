@@ -165,4 +165,8 @@ public class Compiler {
 		db.shutdown();
 	}
 
+	public com.google.javascript.jscomp.Compiler getCompiler() {
+		return compiler;
+	}
+
 }

@@ -26,6 +26,7 @@
         <module name="databasetest" />
         <module name="JavaScriptToNeo4J" />
         <module name="SaveNodeToDatabase" />
+        <module name="Utils" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -33,6 +34,7 @@
       <module name="databasetest" target="1.8" />
       <module name="JavaScriptToNeo4J" target="1.8" />
       <module name="SaveNodeToDatabase" target="1.8" />
+      <module name="Utils" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>
