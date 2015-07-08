@@ -10,6 +10,7 @@
         <option value="$PROJECT_DIR$/databasetest/pom.xml" />
         <option value="$PROJECT_DIR$/closurecompilerTest/pom.xml" />
         <option value="$PROJECT_DIR$/SaveNodeToDatabase/pom.xml" />
+        <option value="$PROJECT_DIR$/JavaScriptToNeo4J/pom.xml" />
       </list>
     </option>
   </component>

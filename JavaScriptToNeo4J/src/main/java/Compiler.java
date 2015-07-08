@@ -1,6 +1,8 @@
 import com.google.common.collect.Lists;
-import com.google.javascript.jscomp.*;
-import com.google.javascript.jscomp.Compiler;
+import com.google.javascript.jscomp.AccessToNormalize;
+import com.google.javascript.jscomp.CompilerOptions;
+import com.google.javascript.jscomp.NodeTraversal;
+import com.google.javascript.jscomp.SourceFile;
 import compiler.IdPropertyObject;
 import compiler.PreorderListCallback;
 import compiler.SaveNodeToDatabaseCallback;
@@ -8,132 +10,83 @@ import db.AstRootLabel;
 import db.AstTypeLabels;
 import db.Properties;
 import db.RelationshipTypes;
-import edu.emory.mathcs.backport.java.util.Arrays;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.*;
 
-/**
- * Created by Per on 05.07.2015.
- */
+public class Compiler {
+	private List<String> inputFilePaths;
+	private String databasePath; //TODO path possible or just name?
+	private List<SourceFile> inputFiles;
+	private com.google.javascript.jscomp.Compiler compiler;
+	private CompilerOptions compilerOptions;
+	private GraphDatabaseService db;
 
-public class SaveNodeToDatabase {
+	public static Compiler saveAstToDatabase(List<String> inputFilePaths, String databasePath) {
+		Compiler compiler = new Compiler(inputFilePaths, databasePath);
+		compiler.initialize();
+		compiler.compile();
+		compiler.normalizeAst();
+		compiler.writeAstToDatabase();
+		return compiler;
+	}
+	public Compiler(List<String> inputFilePaths, String databasePath) {
+		this.inputFilePaths = inputFilePaths;
+		this.databasePath = databasePath;
+	}
 
 
-	private static final String DATABASE_FOLDER_NAME = "database.graphdb";
+	public void initialize() {
+		inputFiles = getInputFiles();
+		compilerOptions = getCompilerOptions();
+		compiler = new com.google.javascript.jscomp.Compiler();
 
-	public static void main(String[] args) {
-
-		try {
-			Utils.deleteFolder(new File(DATABASE_FOLDER_NAME));
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(DATABASE_FOLDER_NAME);
+		db = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
 		Runtime.getRuntime().addShutdownHook(new Thread() {
 			@Override
 			public void run() {
-				graphDb.shutdown();
+				db.shutdown();
 			}
 		});
-
-		Compiler compiler = setupCompiler();
-
-		writeAstToDatabase(compiler, graphDb);
-		validateAstInDatabase(compiler, graphDb);
-
-		graphDb.shutdown();
-		System.out.println("Done");
-
-
 	}
 
-	private static Compiler setupCompiler() {
-		List<SourceFile> sources = getSourceFiles(Arrays.asList(new String[]{"switch_node_code.js"}));
-		CompilerOptions options = getCompilerOptions();
-
-		com.google.javascript.jscomp.Compiler compiler = new Compiler();
-		compiler.compile(new ArrayList<SourceFile>(), sources, options);
-
-		// Normalize the AST. The Normalize compiler pass is package visible, so it is accessed via AccessToNormalize.
-		AccessToNormalize.processNormalize(compiler);
-		return compiler;
+	public void compile() {
+		compiler.compile(new ArrayList<SourceFile>(), inputFiles, compilerOptions);
 	}
 
-
-	private static List<SourceFile> getSourceFiles(List<String> sourceFiles) {
-		ArrayList<SourceFile> sources = new ArrayList<>();
-		for (String filepath : sourceFiles) {
-			SourceFile sourceFile = SourceFile.fromFile(filepath);
-			sources.add(sourceFile);
+	private List<SourceFile> getInputFiles() {
+		ArrayList<SourceFile> inputFiles = new ArrayList<>();
+		for (String filepath : inputFilePaths) {
+			SourceFile inputFile = SourceFile.fromFile(filepath);
+			inputFiles.add(inputFile);
 		}
-		return sources;
+		return inputFiles;
 	}
 
-	private static List<SourceFile> getExternFiles() {
-		SourceFile externFile = SourceFile.fromFile("externs.js");
-		try {
-			System.out.println(externFile.getCode());
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		ArrayList<SourceFile> externs = new ArrayList<>();
-		externs.add(externFile);
-		return externs;
-	}
-
-	private static CompilerOptions getCompilerOptions() {
+	CompilerOptions getCompilerOptions() {
 		CompilerOptions options = new CompilerOptions();
 		options.setLanguage(CompilerOptions.LanguageMode.ECMASCRIPT5_STRICT);
 		options.setSkipAllPasses(true);
 		return options;
 	}
 
-
-	private static void printAst(com.google.javascript.rhino.Node root) {
-		Stack<com.google.javascript.rhino.Node> nodesToVisit = new Stack<>();
-		nodesToVisit.push(root);
-		int ident = 0;
-		while (!nodesToVisit.isEmpty()) {
-			com.google.javascript.rhino.Node node = nodesToVisit.pop();
-			if (node == null) {
-				ident--;
-				continue;
-			}
-
-			for (int i = 0; i < ident; i++) {
-				System.out.print("    ");
-			}
-			System.out.println(node.toString());
-
-			List<com.google.javascript.rhino.Node> children = Lists.newArrayList(node.children());
-			if (children.size() > 0) {
-				ident++;
-				nodesToVisit.push(null);
-				children = Lists.reverse(children);
-				for (com.google.javascript.rhino.Node child : children) {
-					nodesToVisit.push(child);
-				}
-			}
-		}
+	public void normalizeAst() {
+		// Normalize the AST. The Normalize compiler pass is package visible, so it is accessed via AccessToNormalize.
+		AccessToNormalize.processNormalize(compiler);
 	}
 
-	private static void writeAstToDatabase(Compiler compiler, GraphDatabaseService db) {
+	public void writeAstToDatabase() {
 		try (Transaction tx = db.beginTx()) {
 			SaveNodeToDatabaseCallback callback = new SaveNodeToDatabaseCallback(db);
-
 			NodeTraversal.traverse(compiler, compiler.getRoot(), callback);
 			tx.success();
 		}
 	}
 
-	private static void validateAstInDatabase(Compiler compiler, GraphDatabaseService db) {
-		List<com.google.javascript.rhino.Node> preOrderCompilerAst = getPreOrderCompilerAst(compiler);
-		List<Node> preOrderDbAst = getPreOrderDbAst(db);
+	public void validateAstInDatabase() {
+		List<com.google.javascript.rhino.Node> preOrderCompilerAst = getPreOrderCompilerAst();
+		List<Node> preOrderDbAst = getPreOrderDbAst();
 		try (Transaction tx = db.beginTx()) {
 			for (int i = 0; i < preOrderCompilerAst.size(); i++) {
 				com.google.javascript.rhino.Node compilerNode = preOrderCompilerAst.get(i);
@@ -155,7 +108,7 @@ public class SaveNodeToDatabase {
 		}
 	}
 
-	private static List<Node> getPreOrderDbAst(GraphDatabaseService db) {
+	private List<Node> getPreOrderDbAst() {
 		List<Node> nodeList = new ArrayList<>();
 		try (Transaction tx = db.beginTx()) {
 			Stack<Node> nodesToVisit = new Stack<>();
@@ -202,12 +155,14 @@ public class SaveNodeToDatabase {
 //		return nodeList;
 	}
 
-	private static List<com.google.javascript.rhino.Node> getPreOrderCompilerAst(Compiler compiler) {
+	private List<com.google.javascript.rhino.Node> getPreOrderCompilerAst() {
 		PreorderListCallback preorderListCallback = new PreorderListCallback();
 		NodeTraversal.traverse(compiler, compiler.getRoot(), preorderListCallback);
 		return preorderListCallback.getNodes();
 	}
 
+	public void shutdown() {
+		db.shutdown();
+	}
+
 }
-
-
