@@ -13,7 +13,7 @@ public class ExampleUsage {
 		}
 		Compiler compiler = Compiler.saveAstToDatabase(Arrays.asList(new String[]{"switch_node_code.js"}), "database");
 		compiler.validateAstInDatabase();
-		Utils.printAst(compiler.getCompiler().getRoot());
 		compiler.shutdown();
+		System.out.println("Done");
 	}
 }

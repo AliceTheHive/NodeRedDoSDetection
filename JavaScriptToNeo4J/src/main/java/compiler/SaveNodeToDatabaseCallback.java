@@ -10,15 +10,13 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Relationship;
 
 import java.util.HashMap;
+import java.util.stream.Collectors;
 
-public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
+public class SaveNodeToDatabaseCallback extends NodeTraversal.AbstractPreOrderCallback {
 
 	private GraphDatabaseService db;
 
-	private int nodeCounter = 0;
-
-	// I am using object instance equality here on purpose.
-	private HashMap<Node, org.neo4j.graphdb.Node> parentMap = new HashMap<>();
+	private HashMap<Node, org.neo4j.graphdb.Node> compilerToDbNodeMap = new HashMap<>();
 
 	public SaveNodeToDatabaseCallback(GraphDatabaseService db) {
 		this.db = db;
@@ -26,7 +24,6 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 
 	@Override
 	public boolean shouldTraverse(NodeTraversal nodeTraversal, Node node, Node parent) {
-		nodeCounter++;
 		org.neo4j.graphdb.Node dbNode = db.createNode();
 		dbNode.addLabel(new AstNodeLabel());
 		if (parent == null) {
@@ -35,13 +32,10 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		dbNode.addLabel(AstTypeLabels.typeToLabel(node.getType()));
 		dbNode.setProperty(Properties.AST_TYPE, node.getType());
 
-		node.putProp(IdPropertyObject.ID_PROP, new IdPropertyObject(dbNode.getId()));
-		parentMap.put(node, dbNode);
+		compilerToDbNodeMap.put(node, dbNode);
 
 		if (parent != null) {
-//			Object parentIdProp = parent.getProp(IdPropertyObject.ID_PROP);
-//			long parentId = ((IdPropertyObject) parentIdProp).getId();
-			org.neo4j.graphdb.Node dbParent =  parentMap.get(parent);
+			org.neo4j.graphdb.Node dbParent =  compilerToDbNodeMap.get(parent);
 			Relationship parentRelationship = dbParent.createRelationshipTo(dbNode, RelationshipTypes.AST_PARENT_OF);
 
 			int childRank = parent.getIndexOfChild(node);
@@ -50,19 +44,11 @@ public class SaveNodeToDatabaseCallback implements NodeTraversal.Callback {
 		return true;
 	}
 
-	@Override
-	public void visit(NodeTraversal nodeTraversal, Node node, Node parent) {
-//		if (parent != null) {
-//			compiler.IdPropertyObject idObject = (compiler.IdPropertyObject) parent.getProp(ID_PROP);
-//
-//			parentMap.remove(idObject.getId());
-//
-//		}
+	public HashMap<Node, Long> getCompilerToDbNodeMap() {
+		HashMap<Node, Long> compilerToDbNodeIdMap = new HashMap<>();
+		for ( Node node : compilerToDbNodeMap.keySet()) {
+			compilerToDbNodeIdMap.put(node, compilerToDbNodeMap.get(node).getId());
+		}
+		return compilerToDbNodeIdMap;
 	}
-
-	public int getNodeCounter() {
-		return nodeCounter;
-	}
-
-
 }

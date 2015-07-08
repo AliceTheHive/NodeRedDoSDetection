@@ -3,7 +3,6 @@ import com.google.javascript.jscomp.AccessToNormalize;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.jscomp.SourceFile;
-import compiler.IdPropertyObject;
 import compiler.PreorderListCallback;
 import compiler.SaveNodeToDatabaseCallback;
 import db.Labels.AstRootLabel;
@@ -11,6 +10,7 @@ import db.Labels.AstTypeLabels;
 import db.Properties;
 import db.RelationshipTypes;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.util.*;
@@ -22,6 +22,8 @@ public class Compiler {
 	private com.google.javascript.jscomp.Compiler compiler;
 	private CompilerOptions compilerOptions;
 	private GraphDatabaseService db;
+
+	private HashMap<com.google.javascript.rhino.Node, Long> compilerToDbNodeMap;
 
 	public static Compiler saveAstToDatabase(List<String> inputFilePaths, String databasePath) {
 		Compiler compiler = new Compiler(inputFilePaths, databasePath);
@@ -80,6 +82,7 @@ public class Compiler {
 		try (Transaction tx = db.beginTx()) {
 			SaveNodeToDatabaseCallback callback = new SaveNodeToDatabaseCallback(db);
 			NodeTraversal.traverse(compiler, compiler.getRoot(), callback);
+			compilerToDbNodeMap = callback.getCompilerToDbNodeMap();
 			tx.success();
 		}
 	}
@@ -92,7 +95,6 @@ public class Compiler {
 				com.google.javascript.rhino.Node compilerNode = preOrderCompilerAst.get(i);
 				Node dbNode = preOrderDbAst.get(i);
 
-				long compilerNodeId = ((IdPropertyObject) compilerNode.getProp(IdPropertyObject.ID_PROP)).getId();
 				int compilerType = compilerNode.getType();
 
 				int dbType = (Integer) dbNode.getProperty(Properties.AST_TYPE);
@@ -100,8 +102,11 @@ public class Compiler {
 				if (!dbNode.hasLabel(AstTypeLabels.typeToLabel(dbType))) {
 					System.out.println("Error label type not equal property type.");
 				}
-				if (dbNode.getId() != compilerNodeId || compilerType != dbType) {
+				if (compilerType != dbType) {
 					System.out.println("Error");
+				}
+				if (compilerNode.getChildCount() != Lists.newArrayList(dbNode.getRelationships(RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING)).size()) {
+					System.out.println("Error unequal child count.");
 				}
 				tx.success();
 			}
