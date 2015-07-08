@@ -1,6 +1,6 @@
 package db;
 
-import db.typeLabels.*;
+import db.Labels.astTypeLabels.*;
 import org.neo4j.graphdb.Label;
 
 class AstTypeLabelsGenerated {

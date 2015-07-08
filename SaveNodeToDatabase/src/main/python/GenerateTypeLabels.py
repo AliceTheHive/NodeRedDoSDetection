@@ -1,4 +1,4 @@
-classFolder = 'typeLabels'
+classFolder = 'astTypeLabels'
 
 typeString = """ERROR = -1,
 
@@ -223,7 +223,7 @@ import org.neo4j.graphdb.Label;
 f = file('AstTypeLabelsGenerated.java', 'w')
 
 f.write('package db;\n')
-f.write('import db.typeLabels.*;\n')
+f.write('import db.Labels.astTypeLabels.*;\n')
 f.write('import org.neo4j.graphdb.Label;\n')
 f.write('class AstTypeLabelsGenerated {\n')
 f.write('public static Label typeToLabel(int type) {\n')

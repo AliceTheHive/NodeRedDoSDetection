@@ -3,6 +3,9 @@ package compiler;
 import com.google.javascript.jscomp.NodeTraversal;
 import com.google.javascript.rhino.Node;
 import db.*;
+import db.Labels.AstNodeLabel;
+import db.Labels.AstRootLabel;
+import db.Labels.AstTypeLabels;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Relationship;
 

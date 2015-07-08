@@ -6,8 +6,8 @@ import com.google.javascript.jscomp.SourceFile;
 import compiler.IdPropertyObject;
 import compiler.PreorderListCallback;
 import compiler.SaveNodeToDatabaseCallback;
-import db.AstRootLabel;
-import db.AstTypeLabels;
+import db.Labels.AstRootLabel;
+import db.Labels.AstTypeLabels;
 import db.Properties;
 import db.RelationshipTypes;
 import org.neo4j.graphdb.*;
@@ -140,7 +140,7 @@ public class Compiler {
 //					.relationships(db.RelationshipTypes.AST_PARENT_OF, Direction.OUTGOING)
 //					.order(BranchOrderingPolicies.PREORDER_DEPTH_FIRST)
 //					.expand(new db.MyPathExpander());
-//			Iterator nodes = db.findNodes(new db.AstRootLabel());
+//			Iterator nodes = db.findNodes(new db.Labels.AstRootLabel());
 //			Iterable<Node> nodesIterable = new Iterable<Node>() {
 //				@Override
 //				public Iterator<Node> iterator() {
