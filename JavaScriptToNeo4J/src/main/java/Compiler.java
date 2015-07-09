@@ -38,7 +38,6 @@ public class Compiler {
 		this.databasePath = databasePath;
 	}
 
-
 	public void initialize() {
 		inputFiles = getInputFiles();
 		compilerOptions = getCompilerOptions();
@@ -74,7 +73,6 @@ public class Compiler {
 	}
 
 	public void normalizeAst() {
-		// Normalize the AST. The Normalize compiler pass is package visible, so it is accessed via AccessToNormalize.
 		AccessToNormalize.processNormalize(compiler);
 	}
 

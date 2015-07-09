@@ -1,11 +1,8 @@
-/**
- * Created by Per on 05.07.2015.
- */
 package com.google.javascript.jscomp;
 
-import com.google.javascript.jscomp.Compiler;
-import com.google.javascript.jscomp.Normalize;
-
+/**
+ * Since the compilerpass Normalize is package visible, this class exists to make it useable in this project.
+ */
 public class AccessToNormalize {
 
 	public static Normalize getNormalizePass(Compiler compiler) {
