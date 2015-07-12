@@ -18,6 +18,8 @@ public class SaveNodeToDatabaseCallback extends NodeTraversal.AbstractPreOrderCa
 
 	private HashMap<Node, org.neo4j.graphdb.Node> compilerToDbNodeMap = new HashMap<>();
 
+	private HashMap<Long, Node> dbNodeIdToCompilerNode = new HashMap<>();
+
 	public SaveNodeToDatabaseCallback(GraphDatabaseService db) {
 		this.db = db;
 	}
@@ -33,6 +35,7 @@ public class SaveNodeToDatabaseCallback extends NodeTraversal.AbstractPreOrderCa
 		dbNode.setProperty(Properties.AST_TYPE, node.getType());
 
 		compilerToDbNodeMap.put(node, dbNode);
+		dbNodeIdToCompilerNode.put(dbNode.getId(), node);
 
 		if (parent != null) {
 			org.neo4j.graphdb.Node dbParent =  compilerToDbNodeMap.get(parent);
@@ -51,4 +54,9 @@ public class SaveNodeToDatabaseCallback extends NodeTraversal.AbstractPreOrderCa
 		}
 		return compilerToDbNodeIdMap;
 	}
+
+	public HashMap<Long, Node> getDbNodeIdToCompilerNode() {
+		return dbNodeIdToCompilerNode;
+	}
+
 }

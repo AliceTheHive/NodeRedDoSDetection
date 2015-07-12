@@ -21,6 +21,7 @@ public class Compiler {
 	private GraphDatabaseService db;
 
 	private HashMap<com.google.javascript.rhino.Node, Long> compilerToDbNodeMap;
+	private HashMap<Long, com.google.javascript.rhino.Node> dbNodeIdToCompilerNodeMap;
 	private ControlFlowGraph<com.google.javascript.rhino.Node> controllFlowGraph;
 
 	public static Compiler saveAstToDatabase(List<String> inputFilePaths, String databasePath) {
@@ -92,6 +93,7 @@ public class Compiler {
 			SaveNodeToDatabaseCallback callback = new SaveNodeToDatabaseCallback(db);
 			NodeTraversal.traverse(compiler, compiler.getRoot(), callback);
 			compilerToDbNodeMap = callback.getCompilerToDbNodeMap();
+			dbNodeIdToCompilerNodeMap = callback.getDbNodeIdToCompilerNode();
 			tx.success();
 		}
 	}
@@ -214,13 +216,39 @@ public class Compiler {
 
 	public void validateCFGInDatabase() {
 		try (Transaction tx = db.beginTx()) {
-			List<Node> cfgNodes = Lists.newArrayList(db.findNodes(new CfgNodeLabel()));
-			if (cfgNodes.size() == controllFlowGraph.getNodes().size()) {
-				System.out.println("Same node count");
-			} else {
-				System.out.println("Error");
+			HashMap<com.google.javascript.rhino.Node, DiGraph.DiGraphNode<com.google.javascript.rhino.Node, ControlFlowGraph.Branch>> astToCfgNodes = new HashMap<>();
+			for (DiGraph.DiGraphNode<com.google.javascript.rhino.Node, ControlFlowGraph.Branch> node : controllFlowGraph.getNodes()) {
+				if (node.getValue() != null) {
+					astToCfgNodes.put(node.getValue(), node);
+				}
+			}
+
+			ResourceIterator<Node> cfgNodes = db.findNodes(new CfgNodeLabel());
+			int nodeCounter = 0;
+			while (cfgNodes.hasNext()) {
+				nodeCounter++;
+				Node node = cfgNodes.next();
+				DiGraph.DiGraphNode<com.google.javascript.rhino.Node, ControlFlowGraph.Branch> cfgNode = astToCfgNodes.get(dbNodeIdToCompilerNodeMap.get(node.getId()));
+				if (cfgNode == null) {
+					cfgNode = controllFlowGraph.getImplicitReturn();
+				}
+
+				for (ControlFlowGraph.Branch branch : ControlFlowGraph.Branch.values()) {
+					if (Lists.newArrayList(node.getRelationships(RelationshipTypes.getCfgRelationshipType(branch), Direction.OUTGOING)).size()
+							!= cfgNode.getOutEdges().stream().filter(e -> e.getValue() == branch).count()) {
+						System.out.println("Edge count not equal.");
+					}
+					if (Lists.newArrayList(node.getRelationships(RelationshipTypes.getCfgRelationshipType(branch), Direction.INCOMING)).size()
+							!= cfgNode.getInEdges().stream().filter(e -> e.getValue() == branch).count()) {
+						System.out.println("Edge count not equal.");
+					}
+				}
 			}
 			tx.success();
+			if (nodeCounter != controllFlowGraph.getNodes().size()) {
+				System.out.println("Node count unequal.");
+			}
+
 		}
 
 	}
