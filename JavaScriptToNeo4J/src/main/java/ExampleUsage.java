@@ -11,7 +11,7 @@ public class ExampleUsage {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		Compiler compiler = Compiler.saveAstToDatabase(Arrays.asList(new String[]{"switch_node_code.js"}), "database");
+		Compiler compiler = Compiler.saveCFGToDatabase(Arrays.asList(new String[]{"test.js"}), "database");
 		compiler.validateAstInDatabase();
 		compiler.shutdown();
 		System.out.println("Done");

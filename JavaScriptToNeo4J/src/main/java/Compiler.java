@@ -1,12 +1,9 @@
 import com.google.common.collect.Lists;
-import com.google.javascript.jscomp.AccessToNormalize;
-import com.google.javascript.jscomp.CompilerOptions;
-import com.google.javascript.jscomp.NodeTraversal;
-import com.google.javascript.jscomp.SourceFile;
+import com.google.javascript.jscomp.*;
+import com.google.javascript.jscomp.graph.DiGraph;
 import compiler.PreorderListCallback;
 import compiler.SaveNodeToDatabaseCallback;
-import db.Labels.AstRootLabel;
-import db.Labels.AstTypeLabels;
+import db.Labels.*;
 import db.Properties;
 import db.RelationshipTypes;
 import org.neo4j.graphdb.*;
@@ -24,6 +21,7 @@ public class Compiler {
 	private GraphDatabaseService db;
 
 	private HashMap<com.google.javascript.rhino.Node, Long> compilerToDbNodeMap;
+	private ControlFlowGraph<com.google.javascript.rhino.Node> controllFlowGraph;
 
 	public static Compiler saveAstToDatabase(List<String> inputFilePaths, String databasePath) {
 		Compiler compiler = new Compiler(inputFilePaths, databasePath);
@@ -33,6 +31,19 @@ public class Compiler {
 		compiler.writeAstToDatabase();
 		return compiler;
 	}
+
+	public static Compiler saveCFGToDatabase(List<String> inputFilePaths, String databasePath) {
+		Compiler compiler = new Compiler(inputFilePaths, databasePath);
+		compiler.initialize();
+		compiler.compile();
+		compiler.normalizeAst();
+		compiler.writeAstToDatabase();
+		compiler.generateControllFlowGraph();
+		compiler.writeCFGToDatabase();
+		compiler.validateCFGInDatabase();
+		return compiler;
+	}
+
 	public Compiler(List<String> inputFilePaths, String databasePath) {
 		this.inputFilePaths = inputFilePaths;
 		this.databasePath = databasePath;
@@ -162,6 +173,56 @@ public class Compiler {
 		PreorderListCallback preorderListCallback = new PreorderListCallback();
 		NodeTraversal.traverse(compiler, compiler.getRoot(), preorderListCallback);
 		return preorderListCallback.getNodes();
+	}
+
+	public void generateControllFlowGraph() {
+		this.controllFlowGraph = AccessToControlFlowAnalysis.processControllFlowAnalysis(compiler);
+		Utils.printCfg(controllFlowGraph);
+	}
+
+	public void writeCFGToDatabase() {
+		Collection<DiGraph.DiGraphNode<com.google.javascript.rhino.Node, ControlFlowGraph.Branch>> controlFlowNodes = this.controllFlowGraph.getNodes();
+
+		try (Transaction tx = db.beginTx()) {
+			Node returnNode = db.createNode();
+			returnNode.addLabel(new CfgNodeLabel());
+			returnNode.addLabel(new CfgReturnLabel());
+
+			for (DiGraph.DiGraphNode<com.google.javascript.rhino.Node,ControlFlowGraph.Branch> node : controlFlowNodes) {
+				if (!controllFlowGraph.isImplicitReturn(node)) {
+					Node sourceDbNode = db.getNodeById(compilerToDbNodeMap.get(node.getValue()));
+					sourceDbNode.addLabel(new CfgNodeLabel());
+					if (node.getInEdges().size() == 0) {
+						sourceDbNode.addLabel(new CfgEntryLabel());
+					}
+
+					for (DiGraph.DiGraphEdge<com.google.javascript.rhino.Node, ControlFlowGraph.Branch> edge : node.getOutEdges()) {
+						DiGraph.DiGraphNode<com.google.javascript.rhino.Node, ControlFlowGraph.Branch> targetNode = edge.getDestination();
+						Node targetDbNode;
+						if (controllFlowGraph.isImplicitReturn(targetNode)) {
+							targetDbNode = returnNode;
+						} else {
+							targetDbNode= db.getNodeById(compilerToDbNodeMap.get(edge.getDestination().getValue()));
+						}
+						sourceDbNode.createRelationshipTo(targetDbNode, RelationshipTypes.getCfgRelationshipType(edge.getValue()));
+					}
+				}
+			}
+			tx.success();
+		}
+	}
+
+	public void validateCFGInDatabase() {
+		try (Transaction tx = db.beginTx()) {
+			List<Node> cfgNodes = Lists.newArrayList(db.findNodes(new CfgNodeLabel()));
+			if (cfgNodes.size() == controllFlowGraph.getNodes().size()) {
+				System.out.println("Same node count");
+			} else {
+				System.out.println("Error");
+			}
+			tx.success();
+		}
+
 	}
 
 	public void shutdown() {
