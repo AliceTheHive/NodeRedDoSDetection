@@ -6,6 +6,7 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="neo4j-2.3.0-M02-sources" level="project" />
+    <orderEntry type="library" name="Node.js v0.10.36 Core Modules" level="application" />
   </component>
   <component name="org.twodividedbyzero.idea.findbugs">
     <option name="_basePreferences">
@@ -207,4 +208,3 @@
     </option>
   </component>
 </module>
-
