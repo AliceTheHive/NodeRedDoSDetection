@@ -8,6 +8,9 @@ taking some inputfiles and a path to a database to write the AST and the CFG to 
 The database will contain a AST and CFG within the AST for every JavaScript input file. Labels, Relationshiptypes and Properties
 are defined in JavaScriptToNeo4J/db.
 
+To run my current run configiguration execute `mvn clean install exec:java`. [Maven](https://maven.apache.org/) needs to be installed and on your path. This configurations are used by me to validate my work. They will change quickly and will be not documented. Example usage programs might be added later.
+If you use Intelij the run configuration I use are shared as well.
+
 ### NodeRedDoS
 Contains all the JSON-Representation of Node-Red DoS Attacks used. Will contain also programs to measure the impact of this 
 attacks on a [Wamp Server](http://www.wampserver.com/en/) (Version 2.5, default configuration).
